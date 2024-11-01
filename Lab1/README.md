@@ -8,5 +8,5 @@ cc -o client client.c
 
 ### Start
 ```c
-./server file1.txt file2.txt
+./server file1.txt
 ```
