@@ -11,6 +11,9 @@ int isPrime(int N) {
     if (N == 1) {
         return 0;
     }
+    if (N == 2) {
+        return 1;
+    }
     if (N % 2 == 0){
         return 0;
     }
@@ -24,11 +27,16 @@ int isPrime(int N) {
 }
 
 int Validatenum(const char* argv) {
+    int cnt = 0;
     while (*argv != '\0' && *argv != '\n') {
         if (!isdigit(*argv)) {
             return 0;
         }
+        cnt++;
         argv++;
+    }
+    if (cnt > 8){
+        return -1;
     }
     return 1;
 }
@@ -36,13 +44,7 @@ int Validatenum(const char* argv) {
 int main(int argc, char **argv) {
     char buf[4096];
     ssize_t bytes;
-
     pid_t pid = getpid();
-
-    // NOTE: `O_WRONLY` only enables file for writing
-    // NOTE: `O_CREAT` creates the requested file if absent
-    // NOTE: `O_TRUNC` empties the file prior to opening
-    // NOTE: `O_APPEND` subsequent writes are being appended instead of overwritten
     int32_t file = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, 0600);
     if (file == -1) {
         const char msg[] = "error: failed to open requested file\n";
@@ -67,10 +69,16 @@ int main(int argc, char **argv) {
         }
         {
             buf[bytes - 1] = '\0';
-            if (Validatenum(buf) == 0){
-                const char msg[] = "error: one of arguments is not a number\n";
-                write(STDERR_FILENO, msg, sizeof(msg));
-                exit(EXIT_FAILURE);
+            switch(Validatenum(buf)){
+                case 0:
+                    const char msg[] = "error: one of arguments is not a number\n";
+                    write(STDERR_FILENO, msg, sizeof(msg));
+                    exit(EXIT_FAILURE);
+                case -1:
+                    const char msg1[] = "error: too many symbols\n";
+                    write(STDERR_FILENO, msg1, sizeof(msg1));
+                    exit(EXIT_FAILURE);
+                default: break;
             }
             int num = atoi(buf);
             if (isPrime(num) == 1) {
@@ -87,11 +95,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-
-    // NOTE: Write EOF to final file
-    // TODO: Check for count of actual bytes written
     const char term = '\0';
     write(file, &term, sizeof(term));
-
     close(file);
 }
