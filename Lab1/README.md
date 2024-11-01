@@ -3,8 +3,7 @@
 ### Compile
 ```c
 cc -o server server.c
-cc -o client1 client1.c
-cc -o client2 client2.c
+cc -o client client.c
 ```
 
 ### Start
