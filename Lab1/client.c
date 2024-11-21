@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
             buf[bytes - 1] = '\0';
             switch(Validatenum(buf)){
                 case 0:
-                    const char msg[] = "error: one of arguments is not a number\n";
+                    const char msg[] = "error: one of arguments is not a positive number\n";
                     write(STDERR_FILENO, msg, sizeof(msg));
                     exit(EXIT_FAILURE);
                 case -1:
