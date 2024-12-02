@@ -49,8 +49,7 @@ int main(int argc, char **argv) {
 		close(channel[STDOUT_FILENO]);
 		{
 			char msg[64];
-			const int32_t length = snprintf(msg, sizeof(msg),
-				"%d: I'm a child\n", pid);
+			const int32_t length = snprintf(msg, sizeof(msg), "%d: I'm a child\n", pid);
 			write(STDOUT_FILENO, msg, length);
 		}
 
@@ -73,8 +72,7 @@ int main(int argc, char **argv) {
 		pid_t pid = getpid();
 		{
 			char msg[64];
-			const int32_t length = snprintf(msg, sizeof(msg),
-				"%d: I'm a parent, my child has PID %d\n", pid, child);
+			const int32_t length = snprintf(msg, sizeof(msg), "%d: I'm a parent, my child has PID %d\n", pid, child);
 			write(STDOUT_FILENO, msg, length);
 		}
 		int child_status;
