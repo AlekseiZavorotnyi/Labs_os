@@ -25,7 +25,7 @@ void* Find_min_max(void* arg) {
         if (array[i] > ar_max) {
             ar_max = array[i];
         }
-        else if (array[i] < ar_min) {
+        if (array[i] < ar_min) {
             ar_min = array[i];
         }
     }
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
         if (arr_mx < thread_data_array[i].ar_max) {
             arr_mx = thread_data_array[i].ar_max;
         }
-        else if (arr_mn > thread_data_array[i].ar_min) {
+        if (arr_mn > thread_data_array[i].ar_min) {
             arr_mn = thread_data_array[i].ar_min;
         }
     }
