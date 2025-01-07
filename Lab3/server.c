@@ -100,8 +100,7 @@ int main(int argc, char **argv) {
             strncpy(ptr, "", BUFSIZ);
             sem_post(sem_child);
 
-            int status;
-            wait(&status);
+            wait(NULL);
 
             munmap(ptr, BUFSIZ);
             shm_unlink(SHM_NAME);
