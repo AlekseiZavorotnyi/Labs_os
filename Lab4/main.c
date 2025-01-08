@@ -16,6 +16,12 @@ typedef struct Allocator {
     void (*allocator_destroy)(void *allocator);
 } Allocator;
 
+long get_current_time_ns() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (ts.tv_sec * 1000000000) + ts.tv_nsec;
+}
+
 void *default_allocator_create(void *memory, size_t size) {
     (void)size;
     (void)memory;
@@ -106,7 +112,11 @@ int test_allocator(const char *library_path) {
         return EXIT_FAILURE;
     }
 
+    long start_time = get_current_time_ns();
+
     void *allocator = allocator_api->allocator_create(addr, size);
+
+	long end_time = get_current_time_ns();
 
     if (!allocator) {
         char message[] = "ERROR: failed to initialize allocator\n";
