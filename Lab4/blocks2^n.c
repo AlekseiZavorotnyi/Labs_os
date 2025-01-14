@@ -17,7 +17,7 @@ typedef struct Block {
 } Block;
 
 typedef struct Allocator {
-    Block* freeLists[NUM_LISTS];
+    Block* freeBlocks[NUM_LISTS];
     void *memory;
     size_t total_size;
 } Allocator;
@@ -43,17 +43,17 @@ Allocator* allocator_create(void* memory, size_t size) {
 
     size_t extent = 0;
     for (int i = 0; i < 10; ++i) {
-        allocator->freeLists[i] = NULL;
+        allocator->freeBlocks[i] = NULL;
     }
     while (offset + power(2, extent / 10) <= allocator->total_size) {
         Block *block = (Block *)((char *)allocator->memory + offset);
-        if (allocator->freeLists[extent / 10] == NULL) {
+        if (allocator->freeBlocks[extent / 10] == NULL) {
             block->next = NULL;
-            allocator->freeLists[extent / 10] = block;
+            allocator->freeBlocks[extent / 10] = block;
         } else {
-            allocator->freeLists[extent / 10]->prev = block;
+            allocator->freeBlocks[extent / 10]->prev = block;
         }
-        block->next = allocator->freeLists[extent / 10];
+        block->next = allocator->freeBlocks[extent / 10];
         block->size = power(2, extent / 10);
         offset += power(2, extent / 10);
         extent++;
@@ -67,16 +67,16 @@ void split_block(Allocator *allocator, Block* block) {
         ind++;
     }
     Block *block_copy = (Block *)((char *)allocator->memory + block->size / 2);
-    if (allocator->freeLists[ind] == NULL) {
+    if (allocator->freeBlocks[ind] == NULL) {
         block->next = NULL;
-        allocator->freeLists[ind] = block;
-        allocator->freeLists[ind]->prev = block_copy;
+        allocator->freeBlocks[ind] = block;
+        allocator->freeBlocks[ind]->prev = block_copy;
 
     } else {
-        allocator->freeLists[ind]->prev = block;
-        block->next = allocator->freeLists[ind];
-        allocator->freeLists[ind]->prev = block_copy;
-        block_copy->next = allocator->freeLists[ind];
+        allocator->freeBlocks[ind]->prev = block;
+        block->next = allocator->freeBlocks[ind];
+        allocator->freeBlocks[ind]->prev = block_copy;
+        block_copy->next = allocator->freeBlocks[ind];
     }
     block->size = power(2, ind);
     block_copy->size = power(2, ind);
@@ -90,18 +90,18 @@ void* my_malloc(Allocator *allocator, size_t size) {
 
     if (ind >= NUM_LISTS) return NULL;
 
-    if (allocator->freeLists[ind] != NULL) {
-        Block *block = allocator->freeLists[ind];
-        allocator->freeLists[ind] = block->next;
+    if (allocator->freeBlocks[ind] != NULL) {
+        Block *block = allocator->freeBlocks[ind];
+        allocator->freeBlocks[ind] = block->next;
         return block;
     }
 
     for (int i = 0; i < 10 - ind; ++i) {
-        if (allocator->freeLists[ind + i] != NULL) {
+        if (allocator->freeBlocks[ind + i] != NULL) {
             int j = 0;
             while (i != j) {
-                Block *block = allocator->freeLists[ind + i - j];
-                allocator->freeLists[ind + i - j] = block->next;
+                Block *block = allocator->freeBlocks[ind + i - j];
+                allocator->freeBlocks[ind + i - j] = block->next;
                 split_block(allocator, block);
             }
 
@@ -124,7 +124,7 @@ void my_free(Allocator *allocator, void *ptr) {
         ind++;
     }
 
-    allocator->freeLists[ind] = ((Block*)ptr)->next;
+    allocator->freeBlocks[ind] = ((Block*)ptr)->next;
     ptr = NULL;
 }
 
