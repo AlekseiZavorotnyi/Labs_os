@@ -85,7 +85,6 @@ Allocator *load_allocator(const char *library_path) {
     allocator->my_malloc = dlsym(library, "my_malloc");
     allocator->my_free = dlsym(library, "my_free");
     allocator->allocator_destroy = dlsym(library, "allocator_destroy");
-
     if (!allocator->allocator_create || !allocator->my_malloc || !allocator->my_free || !allocator->allocator_destroy) {
         const char msg[] = "ERROR: failed to load all allocator functions\n";
         write(STDERR_FILENO, msg, sizeof(msg) - 1);
@@ -99,11 +98,13 @@ Allocator *load_allocator(const char *library_path) {
 
 int test_allocator(const char *library_path) {
 
+  	srand(time(NULL));
+
     Allocator *allocator_api = load_allocator(library_path);
 
     if (!allocator_api) return -1;
 
-    size_t size = 4096;
+    size_t size = 1024 * 32;
     void *addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (addr == MAP_FAILED) {
         char message[] = "ERROR: mmap failed\n";
@@ -112,11 +113,7 @@ int test_allocator(const char *library_path) {
         return EXIT_FAILURE;
     }
 
-    long start_time = get_current_time_ns();
-
     void *allocator = allocator_api->allocator_create(addr, size);
-
-	long end_time = get_current_time_ns();
 
     if (!allocator) {
         char message[] = "ERROR: failed to initialize allocator\n";
@@ -128,38 +125,62 @@ int test_allocator(const char *library_path) {
 
     char start_message[] = "=============Allocator initialized=============\n";
     write(STDOUT_FILENO, start_message, sizeof(start_message) - 1);
+    long double sum_allocating_time = 0.0, sum_freeing_time = 0.0, start_time, end_time;
 
-    void *allocated_memory = allocator_api->my_malloc(allocator, 64);
-
-    if (allocated_memory == NULL) {
-        char alloc_fail_message[] = "ERROR: memory allocation failed\n";
-        write(STDERR_FILENO, alloc_fail_message, sizeof(alloc_fail_message) - 1);
-    } else{
-        char alloc_success_message[] = "- memory allocated successfully\n";
-        write(STDOUT_FILENO, alloc_success_message, sizeof(alloc_success_message) - 1);
+    int num_alloc, start_alloc = 0, num_free, start_free = 0, tek_num_alloc_need = 100, tek_num_free_can = 0;
+	void * list_allocated_memory[100];
+    while (1){
+        if (tek_num_alloc_need != 0){
+            num_alloc = rand() % tek_num_alloc_need;
+            if (num_alloc == 0){
+                num_alloc = 1;
+            }
+            for (int i = start_alloc; i < start_alloc + num_alloc; i++){
+                start_time = get_current_time_ns();
+                list_allocated_memory[i] = allocator_api->my_malloc(allocator, 3);
+                end_time = get_current_time_ns();
+                sum_allocating_time += (end_time - start_time);
+                if (list_allocated_memory[i] == NULL) {
+                    char alloc_fail_message[] = "ERROR: memory allocation failed\n";
+                    write(STDERR_FILENO, alloc_fail_message, sizeof(alloc_fail_message) - 1);
+                    return EXIT_FAILURE;
+                }
+            }
+            start_alloc += num_alloc;
+            tek_num_alloc_need -= num_alloc;
+            tek_num_free_can += num_alloc;
+        }
+        if (tek_num_free_can != 0){
+            num_free = rand() % tek_num_free_can;
+            if (num_free == 0){
+                num_free = 1;
+            }
+            for (int i = start_free; i < start_free + num_free; i++){
+                start_time = get_current_time_ns();
+                allocator_api->my_free(allocator, list_allocated_memory[i]);
+                end_time = get_current_time_ns();
+                sum_freeing_time += (end_time - start_time);
+            }
+            start_free += num_free;
+            tek_num_free_can -= num_free;
+        }
+        else{
+            break;
+        }
     }
 
-    char alloc_success_message[] = "- allocated memory contain: ";
-    write(STDOUT_FILENO, alloc_success_message, sizeof(alloc_success_message) - 1);
+    sum_allocating_time /= 1000000.0;
+    sum_freeing_time /= 1000000.0;
 
-    strcpy(allocated_memory, "meow!\n");
-    write(STDOUT_FILENO, allocated_memory, strlen(allocated_memory));
-
-    char buffer[64];
-    snprintf(buffer, sizeof(buffer), "- allocated memory address: %p\n", allocated_memory);
-    write(STDOUT_FILENO, buffer, strlen(buffer));
-
-
-    allocator_api->my_free(allocator, allocated_memory);
-
-    char free_message[] = "- memory freed\n";
-    write(STDOUT_FILENO, free_message, sizeof(free_message) - 1);
+    char time_message[100];
+    snprintf(time_message, sizeof(time_message), "Allocation took %Lf ms and freeing took %Lf ms.\n", sum_allocating_time / 100.0, sum_freeing_time / 100.0);
+    write(STDOUT_FILENO, time_message, strlen(time_message));
 
     allocator_api->allocator_destroy(allocator);
     free(allocator_api);
     munmap(addr, size);
 
-    char exit_message[] = "- allocator destroyed\n===============================================\n";
+    char exit_message[] = "=============Allocator destroyed===============\n";
 
     write(STDOUT_FILENO, exit_message, sizeof(exit_message) - 1);
 

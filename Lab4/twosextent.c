@@ -39,7 +39,6 @@ Allocator* allocator_create(void* memory, size_t size) {
     Allocator* allocator = (Allocator*)memory;
     allocator->total_size = size - sizeof(Allocator);
     allocator->memory = (char*)memory + sizeof(Allocator);
-
     size_t offset = 0;
 
     size_t extent = 0;
@@ -59,7 +58,6 @@ Allocator* allocator_create(void* memory, size_t size) {
         offset += power(2, extent / 10);
         extent++;
     }
-
     return allocator;
 }
 
