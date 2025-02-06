@@ -42,7 +42,7 @@ int log_2_n(size_t size) {
 }
 
 Allocator* allocator_create(void* memory, size_t size) {
-	if (!memory || size < sizeof(Block)) {
+	if (memory == NULL || size < sizeof(Block)) {
         return NULL;
     }
     Allocator* allocator = (Allocator*)memory;
@@ -113,10 +113,7 @@ void* my_malloc(Allocator *allocator, size_t size) {
 }
 
 void my_free(Allocator* const allocator, void* const memory) {
-    if (!allocator || !memory) {
-        return;
-    }
-
+    if (allocator == NULL || memory == NULL) {return;}
     Block* block = (Block*)((char*)memory - sizeof(Block));
     int ind = log_2_n(block->size);
     block->next = allocator->freeBlocks[ind];

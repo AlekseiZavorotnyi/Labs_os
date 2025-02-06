@@ -19,7 +19,7 @@ typedef struct Allocator {
 } Allocator;
 
 Allocator* allocator_create(void* const memory, const size_t size) {
-    if (!memory || size < sizeof(Block)) {
+    if (memory == NULL || size < sizeof(Block)) {
         return NULL;
     }
     Allocator* allocator = memory;
@@ -33,45 +33,36 @@ Allocator* allocator_create(void* const memory, const size_t size) {
 }
 
 void* my_malloc(Allocator* const allocator, const size_t size) {
-    if (!allocator || size == 0) {
+    if (allocator == NULL || size == 0) {
         return NULL;
     }
+    Block* previous_block = NULL, *current_block = allocator->freeBlocks;
+    while (current_block != NULL) {
+        if (current_block->size >= size + sizeof(Block)) {
+            if (current_block->size > size + sizeof(Block)) {
+                Block* new_block = (Block*)((char*)current_block + sizeof(Block) + size);
+                new_block->size = current_block->size - size - sizeof(Block);
+                new_block->next = current_block->next;
 
-    Block* prev = NULL;
-    Block* curr = allocator->freeBlocks;
-
-    while (curr) {
-        if (curr->size >= size + sizeof(Block)) {
-            if (curr->size > size + sizeof(Block)) {
-                Block* new_block = (Block*)((char*)curr + sizeof(Block) + size);
-                new_block->size = curr->size - size - sizeof(Block);
-                new_block->next = curr->next;
-
-                curr->size = size;
-                curr->next = new_block;
+                current_block->size = size;
+                current_block->next = new_block;
             }
-
-            if (prev) {
-                prev->next = curr->next;
+            if (previous_block != NULL) {
+                previous_block->next = current_block->next;
             } else {
-                allocator->freeBlocks = curr->next;
+                allocator->freeBlocks = current_block->next;
             }
-
-            return (char*)curr + sizeof(Block);
+            return (char*)current_block + sizeof(Block);
         }
-
-        prev = curr;
-        curr = curr->next;
+        previous_block = current_block;
+        current_block = current_block->next;
     }
 
     return NULL;
 }
 
 void my_free(Allocator* const allocator, void* const memory) {
-    if (!allocator || !memory) {
-        return;
-    }
-
+    if (allocator == NULL || memory == NULL) {return;}
     Block* block = (Block*)((char*)memory - sizeof(Block));
     block->next = allocator->freeBlocks;
     allocator->freeBlocks = block;

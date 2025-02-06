@@ -12,7 +12,7 @@
 typedef struct Allocator {
     void *(*allocator_create)(void *addr, size_t size);
     void *(*my_malloc)(void *allocator, size_t size);
-    void (*my_free)(void *allocator, void *ptr);
+    void (*my_free)(void *allocator, void *memory);
     void (*allocator_destroy)(void *allocator);
 } Allocator;
 
@@ -29,8 +29,7 @@ void *default_allocator_create(void *memory, size_t size) {
 }
 
 void *default_my_malloc(void *allocator, size_t size) {
-    uint32_t *memory = mmap(NULL, size + sizeof(uint32_t), PROT_READ | PROT_WRITE,
-                            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    uint32_t *memory = mmap(NULL, size + sizeof(uint32_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (memory == MAP_FAILED) {
         return NULL;
     }
@@ -39,8 +38,9 @@ void *default_my_malloc(void *allocator, size_t size) {
 }
 
 void default_my_free(void *allocator, void *memory) {
-    if (memory == NULL)
+    if (memory == NULL){
         return;
+    }
     uint32_t *mem = (uint32_t *)memory - 1;
     munmap(mem, *mem);
 }
