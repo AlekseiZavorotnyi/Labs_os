@@ -112,17 +112,6 @@ void* my_malloc(Allocator *allocator, size_t size) {
     return NULL;
 }
 
-/*void my_free(Allocator *allocator, void *ptr) {
-    if (allocator == NULL || ptr == NULL)
-    {
-        return;
-    }
-	Block* block = (Block*)ptr;
-    int ind = log_2_n(block->size);
-    block->next = allocator->freeBlocks[ind];
-    allocator->freeBlocks[ind] = block;
-}*/
-
 void my_free(Allocator* const allocator, void* const memory) {
     if (!allocator || !memory) {
         return;
