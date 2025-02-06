@@ -22,13 +22,13 @@ Allocator* allocator_create(void* const memory, const size_t size) {
     if (!memory || size < sizeof(Block)) {
         return NULL;
     }
-    Allocator* allocator = (Allocator*)memory;
+    Allocator* allocator = memory;
     allocator->memory_size = size - sizeof(Allocator);
     allocator->memory = (char*)memory + sizeof(Allocator);
     allocator->freeBlocks = allocator->memory;
-    Block* initial_block = (Block*)allocator->memory;
-    initial_block->size = allocator->memory_size;
-    initial_block->next = NULL;
+    Block* all_memory_block = allocator->memory;
+    all_memory_block->size = allocator->memory_size;
+    all_memory_block->next = NULL;
     return allocator;
 }
 
@@ -38,7 +38,7 @@ void* my_malloc(Allocator* const allocator, const size_t size) {
     }
 
     Block* prev = NULL;
-    Block* curr = (Block*)allocator->freeBlocks;
+    Block* curr = allocator->freeBlocks;
 
     while (curr) {
         if (curr->size >= size + sizeof(Block)) {
@@ -73,7 +73,7 @@ void my_free(Allocator* const allocator, void* const memory) {
     }
 
     Block* block = (Block*)((char*)memory - sizeof(Block));
-    block->next = (Block*)allocator->freeBlocks;
+    block->next = allocator->freeBlocks;
     allocator->freeBlocks = block;
 }
 
