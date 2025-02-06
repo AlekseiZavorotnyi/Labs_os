@@ -54,7 +54,6 @@ Allocator *load_allocator(const char *library_path) {
     if (library_path == NULL || library_path[0] == '\0') {
         char message[] = "WARNING: failed to load library (default allocator will be used)\n";
         write(STDERR_FILENO, message, sizeof(message) - 1);
-
         Allocator *allocator = malloc(sizeof(Allocator));
         allocator->allocator_create = default_allocator_create;
         allocator->my_malloc = default_my_malloc;
@@ -92,7 +91,6 @@ Allocator *load_allocator(const char *library_path) {
         dlclose(library);
         return NULL;
     }
-
     return allocator;
 }
 
@@ -104,7 +102,7 @@ int test_allocator(const char *library_path) {
 
     if (!allocator_api) return -1;
 
-    size_t size = 1024 * 32;
+    size_t size = 1024 * 1024 * 1024;
     void *addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (addr == MAP_FAILED) {
         char message[] = "ERROR: mmap failed\n";
@@ -137,7 +135,7 @@ int test_allocator(const char *library_path) {
             }
             for (int i = start_alloc; i < start_alloc + num_alloc; i++){
                 start_time = get_current_time_ns();
-                list_allocated_memory[i] = allocator_api->my_malloc(allocator, 3);
+                list_allocated_memory[i] = allocator_api->my_malloc(allocator, 17);
                 end_time = get_current_time_ns();
                 sum_allocating_time += (end_time - start_time);
                 if (list_allocated_memory[i] == NULL) {
@@ -173,7 +171,7 @@ int test_allocator(const char *library_path) {
     sum_freeing_time /= 1000000.0;
 
     char time_message[100];
-    snprintf(time_message, sizeof(time_message), "Allocation took %Lf ms and freeing took %Lf ms.\n", sum_allocating_time / 100.0, sum_freeing_time / 100.0);
+    snprintf(time_message, sizeof(time_message), "Average allocation took %Lf ms and average freeing took %Lf ms.\n", sum_allocating_time / 100.0, sum_freeing_time / 100.0);
     write(STDOUT_FILENO, time_message, strlen(time_message));
 
     allocator_api->allocator_destroy(allocator);
@@ -188,7 +186,13 @@ int test_allocator(const char *library_path) {
 }
 
 int main(int argc, char **argv) {
-    const char *library_path = (argc > 1) ? argv[1] : NULL;
+    const char *library_path;
+    if (argc > 1) {
+    	library_path = argv[1];
+    }
+    else{
+    	library_path = NULL;
+	}
 
     if (test_allocator(library_path))
         return EXIT_FAILURE;

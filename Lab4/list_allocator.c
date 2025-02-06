@@ -1,37 +1,35 @@
 #include <stddef.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <stdio.h>
+
+typedef struct Block {
+    struct Block* next;
+    size_t size;
+} Block;
 
 typedef struct Allocator {
-    void* memory_start;
+    Block* freeBlocks;
+    void* memory;
     size_t memory_size;
-    void* free_list;
 } Allocator;
 
-typedef struct FreeBlock {
-    size_t size;
-    struct FreeBlock* next;
-} FreeBlock;
-
 Allocator* allocator_create(void* const memory, const size_t size) {
-    if (!memory || size < sizeof(FreeBlock)) {
+    if (!memory || size < sizeof(Block)) {
         return NULL;
     }
-
     Allocator* allocator = (Allocator*)memory;
-    allocator->memory_start = (char*)memory + sizeof(Allocator);
     allocator->memory_size = size - sizeof(Allocator);
-    allocator->free_list = allocator->memory_start;
-
-    FreeBlock* initial_block = (FreeBlock*)allocator->memory_start;
+    allocator->memory = (char*)memory + sizeof(Allocator);
+    allocator->freeBlocks = allocator->memory;
+    Block* initial_block = (Block*)allocator->memory;
     initial_block->size = allocator->memory_size;
     initial_block->next = NULL;
-
     return allocator;
-}
-
-void allocator_destroy(Allocator* const allocator) {
-    allocator->memory_start = NULL;
-    allocator->memory_size = 0;
-    allocator->free_list = NULL;
 }
 
 void* my_malloc(Allocator* const allocator, const size_t size) {
@@ -39,14 +37,14 @@ void* my_malloc(Allocator* const allocator, const size_t size) {
         return NULL;
     }
 
-    FreeBlock* prev = NULL;
-    FreeBlock* curr = (FreeBlock*)allocator->free_list;
+    Block* prev = NULL;
+    Block* curr = (Block*)allocator->freeBlocks;
 
     while (curr) {
-        if (curr->size >= size + sizeof(FreeBlock)) {
-            if (curr->size > size + sizeof(FreeBlock)) {
-                FreeBlock* new_block = (FreeBlock*)((char*)curr + sizeof(FreeBlock) + size);
-                new_block->size = curr->size - size - sizeof(FreeBlock);
+        if (curr->size >= size + sizeof(Block)) {
+            if (curr->size > size + sizeof(Block)) {
+                Block* new_block = (Block*)((char*)curr + sizeof(Block) + size);
+                new_block->size = curr->size - size - sizeof(Block);
                 new_block->next = curr->next;
 
                 curr->size = size;
@@ -56,10 +54,10 @@ void* my_malloc(Allocator* const allocator, const size_t size) {
             if (prev) {
                 prev->next = curr->next;
             } else {
-                allocator->free_list = curr->next;
+                allocator->freeBlocks = curr->next;
             }
 
-            return (char*)curr + sizeof(FreeBlock);
+            return (char*)curr + sizeof(Block);
         }
 
         prev = curr;
@@ -74,7 +72,17 @@ void my_free(Allocator* const allocator, void* const memory) {
         return;
     }
 
-    FreeBlock* block = (FreeBlock*)((char*)memory - sizeof(FreeBlock));
-    block->next = (FreeBlock*)allocator->free_list;
-    allocator->free_list = block;
+    Block* block = (Block*)((char*)memory - sizeof(Block));
+    block->next = (Block*)allocator->freeBlocks;
+    allocator->freeBlocks = block;
+}
+
+void allocator_destroy(Allocator* const allocator) {
+    allocator->memory = NULL;
+    allocator->memory_size = 0;
+    allocator->freeBlocks = NULL;
+    if (munmap((void *)allocator, allocator->memory_size + sizeof(Allocator)) == 1)
+    {
+        exit(EXIT_FAILURE);
+    }
 }
