@@ -81,8 +81,4 @@ void allocator_destroy(Allocator* const allocator) {
     allocator->memory = NULL;
     allocator->memory_size = 0;
     allocator->freeBlocks = NULL;
-    if (munmap((void *)allocator, allocator->memory_size + sizeof(Allocator)) == 1)
-    {
-        exit(EXIT_FAILURE);
-    }
 }

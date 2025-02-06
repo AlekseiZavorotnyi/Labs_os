@@ -129,8 +129,4 @@ void allocator_destroy(Allocator *allocator) {
     for (int i = 5; i < 21; i++) {
     	allocator->freeBlocks[i] = NULL;
 	}
-    if (munmap((void *)allocator, allocator->memory_size + sizeof(Allocator)) == 1)
-    {
-        exit(EXIT_FAILURE);
-    }
 }
